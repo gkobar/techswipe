@@ -2,9 +2,9 @@
   "name": "techswipe-backend",
   "version": "1.0.0",
   "description": "TechSwipe haber akışı backend",
-  "main": "server/index.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
