@@ -46,16 +46,21 @@ app.post('/api/translate', async (req, res) => {
         max_tokens: 300,
         messages: [{
           role: 'user',
-          content: `Teknoloji haberini Türkçeye çevir. Sadece JSON formatında yanıt ver, başka hiçbir şey yazma:\n{"title":"çevrilmiş başlık","description":"çevrilmiş açıklama (max 2 cümle)"}\n\nBaşlık: ${title}\nAçıklama: ${description || ''}`
+          content: `Teknoloji haberini Türkçeye çevir. Sadece JSON formatında yanıt ver, başka hiçbir şey yazma, markdown kullanma:\n{"title":"çevrilmiş başlık","description":"çevrilmiş açıklama (max 2 cümle)"}\n\nBaşlık: ${title}\nAçıklama: ${description || ''}`
         }]
       })
     });
     const data = await response.json();
-    const text = data.content[0].text.trim();
+
+    // Claude bazen ```json ``` ile sarar, temizle
+    let text = data.content[0].text.trim();
+    text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
     const parsed = JSON.parse(text);
     res.json(parsed);
   } catch (err) {
-    res.status(500).json({ error: 'Ceviri basarisiz' });
+    console.error('Translate error:', err.message);
+    res.status(500).json({ error: 'Ceviri basarisiz', detail: err.message });
   }
 });
 
