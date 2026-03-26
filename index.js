@@ -101,6 +101,34 @@ app.post('/api/digest', async (req, res) => {
   }
 });
 
+// ── TECHSWIPE: ETİKET ──
+app.post('/api/tag', async (req, res) => {
+  const { title } = req.body;
+  if (!title) return res.status(400).json({ tags: [] });
+  if (!ANTHROPIC_API_KEY) return res.status(500).json({ tags: [] });
+  try {
+    const system = `Sen bir teknoloji haberi sınıflandırıcısısın. Verilen haber başlığına göre aşağıdaki etiketlerden hangilerinin uygun olduğuna karar ver.
+
+Etiketler: Samsung, LG, Sony, Apple, Xiaomi, Philips, TCL, Grundig, Thomson, Peak, Anker, Baseus, TTech, Huawei, Powerbank, Kulaklık, Mobil, TV, Laptop, Yapay Zeka
+
+Kurallar:
+- Sadece haberin ANA konusuyla ilgili etiketleri seç
+- Haber başlığında açıkça geçen veya ana konu olan marka/kategoriyi seç
+- Başlıkta geçmese bile haberin özü o konuysa seç
+- Alakasız etiket koyma, az ama doğru ol
+- SADECE JSON dizi döndür: ["Etiket1", "Etiket2"]
+- Hiç uygun yoksa boş dizi: []`;
+
+    let result = await callClaude(system, title, 100);
+    result = result.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const tags = JSON.parse(result);
+    res.json({ tags: Array.isArray(tags) ? tags : [] });
+  } catch (err) {
+    console.error('Tag error:', err.message);
+    res.json({ tags: [] });
+  }
+});
+
 // ── HEALTH ──
 app.get('/health', (req, res) => res.json({ status: 'ok', key: ANTHROPIC_API_KEY ? 'var' : 'YOK' }));
 
