@@ -132,8 +132,12 @@ Kurallar:
 - SADECE JSON dizi döndür: ["Etiket1", "Etiket2"]
 - Hiç uygun yoksa boş dizi: []`;
     let result = await callClaude(system, title, 100);
+    // Markdown, açıklama vs temizle — sadece JSON array al
     result = result.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    const tags = JSON.parse(result);
+    // JSON array'i bul
+    const match = result.match(/\[.*?\]/s);
+    if (!match) { res.json({ tags: [] }); return; }
+    const tags = JSON.parse(match[0]);
     res.json({ tags: Array.isArray(tags) ? tags : [] });
   } catch (err) {
     console.error('Tag error:', err.message);
