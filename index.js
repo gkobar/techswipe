@@ -291,8 +291,35 @@ Sınıf: ${grade || 5}. sınıf`;
   }
 });
 
+// ── OG IMAGE ÇEKME ──
+app.get('/api/og-image', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ image: '' });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; TechSwipe Bot)',
+        'Accept': 'text/html'
+      },
+      timeout: 6000
+    });
+    const html = await response.text();
+    // og:image veya twitter:image bul
+    const match =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    const image = match ? match[1] : '';
+    res.json({ image });
+  } catch (err) {
+    res.json({ image: '' });
+  }
+});
+
 // ── HEALTH ──
 app.get('/health', (req, res) => res.json({ status: 'ok', key: ANTHROPIC_API_KEY ? 'var' : 'YOK', firebase: FIREBASE_KEY ? 'var' : 'YOK' }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Kobar backend port ${PORT}'de calisiyor`));
+
