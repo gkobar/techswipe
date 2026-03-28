@@ -267,9 +267,32 @@ app.post('/api/digest', async (req, res) => {
   }
 });
 
+// ── PLANLAYICI: KELİME ÜRETİCİ ──
+app.post('/api/planner/words', async (req, res) => {
+  const { topic, grade } = req.body;
+  if (!topic) return res.status(400).json({ error: 'Konu gerekli' });
+  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key eksik' });
+  try {
+    const system = `Sen bir İngilizce öğretmenisin. Verilen konuya ve sınıf seviyesine uygun 10 İngilizce kelime veya ifade üret.
+SADECE JSON formatında yanıt ver:
+[["english word","türkçe karşılık"],["english word","türkçe karşılık"],...]
+Kelimeler o sınıf seviyesine uygun, günlük hayatta kullanılabilir olsun. Markdown kullanma.`;
+    const userContent = `Konu: ${topic}
+Sınıf: ${grade || 5}. sınıf`;
+    let result = await callClaude(system, userContent, 400);
+    result = result.replace(/\`\`\`json\s*/gi, '').replace(/\`\`\`\s*/g, '').trim();
+    const match = result.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('JSON parse hatası');
+    const words = JSON.parse(match[0]);
+    res.json({ words: words.slice(0, 10) });
+  } catch (err) {
+    console.error('Words error:', err.message);
+    res.status(500).json({ error: 'Kelimeler üretilemedi', detail: err.message });
+  }
+});
+
 // ── HEALTH ──
 app.get('/health', (req, res) => res.json({ status: 'ok', key: ANTHROPIC_API_KEY ? 'var' : 'YOK', firebase: FIREBASE_KEY ? 'var' : 'YOK' }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Kobar backend port ${PORT}'de calisiyor`));
-
