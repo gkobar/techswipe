@@ -323,26 +323,28 @@ app.post('/api/tweet', async (req, res) => {
   if (!title) return res.status(400).json({ error: 'Baslik gerekli' });
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key eksik' });
   try {
-    const system = `Sen teknoloji alanında takip edilen, Türkçe yazan bir X (Twitter) kullanıcısısın. 
-Verilen haberi kaynak olarak kullanarak özgün bir tweet yaz.
+    let system;
+    if (tone === 'comment') {
+      system = `Sen teknoloji alanında analitik düşünen, Türkçe yazan bir X kullanıcısısın.
+Verilen haberi kaynak olarak kullanarak "Yorum Katan" bir tweet yaz.
 
-Kurallar:
-- Maksimum 240 karakter
-- Türkçe yaz
-- Haberi birebir özetleme, kendi sesini kullan
-- 2-3 alakalı hashtag ekle (Türkçe veya İngilizce)
-- Emoji kullan ama abartma
-- SADECE tweet metnini yaz, başka hiçbir şey yazma`;
+Yorum Katan tweet: Analiz odaklı, veri ve çıkarım içeren, neden-sonuç ilişkisi kuran, okuyucuya perspektif kazandıran bir tweet. Dil sakin, açıklayıcı ve düşündürücüdür. Haberi özetleme, kendi yorumunu yaz.
 
-    const userContent = `${tone}
+Kurallar: Maks 240 karakter. Türkçe. 1-2 hashtag. 1-2 emoji. SADECE tweet metnini yaz.`;
+    } else {
+      system = `Sen teknoloji alanında etkileşim odaklı, Türkçe yazan bir X kullanıcısısın.
+Verilen haberi kaynak olarak kullanarak "Dikkat Çekici" bir tweet yaz.
 
-Haber başlığı: ${title}
-İçerik: ${description || ''}`;
+Dikkat Çekici tweet: Merak uyandıran, soru soran, çarpıcı ve iddialı ifadeler kullanan, tartışma başlatan bir tweet. Hook formatında başla — ilk cümle okuyucuyu yakalamalı. Dil kısa ve kışkırtıcıdır.
+
+Kurallar: Maks 240 karakter. Türkçe. 1-2 hashtag. 1-2 emoji. SADECE tweet metnini yaz.`;
+    }
+    const userContent = `Haber: ${title}\nDetay: ${description || ''}`;
     const result = await callClaude(system, userContent, 300);
     res.json({ tweet: result.trim() });
   } catch (err) {
     console.error('Tweet error:', err.message);
-    res.status(500).json({ error: 'Tweet yazılamadı' });
+    res.status(500).json({ error: 'Tweet yazilamadi' });
   }
 });
 
