@@ -353,6 +353,74 @@ Kurallar: Maks 240 karakter. Türkçe. 1-2 hashtag. 1-2 emoji. SADECE tweet metn
   }
 });
 
+// ── BOOKMARK: KAYDET / SİL ──
+app.post('/api/bookmark', async (req, res) => {
+  const { userId, action, item } = req.body;
+  if (!userId || !action) return res.status(400).json({ error: 'Eksik parametre' });
+  if (!FIREBASE_KEY) return res.status(500).json({ error: 'Firebase key eksik' });
+
+  const docId = userId + '_' + Buffer.from(item.link || '').toString('base64').replace(/[^a-zA-Z0-9]/g,'').substring(0, 40);
+
+  try {
+    if (action === 'save') {
+      await fbSet('ts_bookmarks', docId, {
+        userId: userId,
+        link: item.link || '',
+        title: item.title || '',
+        description: item.description || '',
+        sourceName: item.sourceName || '',
+        sourceColor: item.sourceColor || '',
+        image: item.image || '',
+        savedAt: Date.now()
+      });
+      res.json({ ok: true });
+    } else if (action === 'delete') {
+      await fbDelete('projects/' + FIREBASE_PROJECT + '/databases/(default)/documents/ts_bookmarks/' + docId);
+      res.json({ ok: true });
+    } else {
+      res.status(400).json({ error: 'Gecersiz action' });
+    }
+  } catch (err) {
+    console.error('Bookmark error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── BOOKMARK: LİSTELE ──
+app.get('/api/bookmark', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId gerekli' });
+  if (!FIREBASE_KEY) return res.status(500).json({ error: 'Firebase key eksik' });
+
+  try {
+    const result = await fbQuery('ts_bookmarks', [
+      { field: 'userId', op: 'EQUAL', type: 'stringValue', value: userId }
+    ]);
+
+    const items = [];
+    if (Array.isArray(result)) {
+      for (const doc of result) {
+        if (!doc.document?.fields) continue;
+        const f = doc.document.fields;
+        items.push({
+          link:        f.link?.stringValue || '',
+          title:       f.title?.stringValue || '',
+          description: f.description?.stringValue || '',
+          sourceName:  f.sourceName?.stringValue || '',
+          sourceColor: f.sourceColor?.stringValue || '',
+          image:       f.image?.stringValue || '',
+          savedAt:     parseInt(f.savedAt?.integerValue || 0)
+        });
+      }
+    }
+    items.sort((a, b) => b.savedAt - a.savedAt);
+    res.json({ items });
+  } catch (err) {
+    console.error('Bookmark list error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── HEALTH ──
 app.get('/health', (req, res) => res.json({ status: 'ok', key: ANTHROPIC_API_KEY ? 'var' : 'YOK', firebase: FIREBASE_KEY ? 'var' : 'YOK' }));
 
