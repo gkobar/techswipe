@@ -317,6 +317,35 @@ app.get('/api/og-image', async (req, res) => {
   }
 });
 
+// ── TWEET YAZICI ──
+app.post('/api/tweet', async (req, res) => {
+  const { title, description, tone } = req.body;
+  if (!title) return res.status(400).json({ error: 'Baslik gerekli' });
+  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key eksik' });
+  try {
+    const system = `Sen teknoloji alanında takip edilen, Türkçe yazan bir X (Twitter) kullanıcısısın. 
+Verilen haberi kaynak olarak kullanarak özgün bir tweet yaz.
+
+Kurallar:
+- Maksimum 240 karakter
+- Türkçe yaz
+- Haberi birebir özetleme, kendi sesini kullan
+- 2-3 alakalı hashtag ekle (Türkçe veya İngilizce)
+- Emoji kullan ama abartma
+- SADECE tweet metnini yaz, başka hiçbir şey yazma`;
+
+    const userContent = `${tone}
+
+Haber başlığı: ${title}
+İçerik: ${description || ''}`;
+    const result = await callClaude(system, userContent, 300);
+    res.json({ tweet: result.trim() });
+  } catch (err) {
+    console.error('Tweet error:', err.message);
+    res.status(500).json({ error: 'Tweet yazılamadı' });
+  }
+});
+
 // ── HEALTH ──
 app.get('/health', (req, res) => res.json({ status: 'ok', key: ANTHROPIC_API_KEY ? 'var' : 'YOK', firebase: FIREBASE_KEY ? 'var' : 'YOK' }));
 
