@@ -319,7 +319,7 @@ app.get('/api/og-image', async (req, res) => {
 
 // ── TWEET YAZICI ──
 app.post('/api/tweet', async (req, res) => {
-  const { title, description, tone } = req.body;
+  const { title, description, tone, link } = req.body;
   if (!title) return res.status(400).json({ error: 'Baslik gerekli' });
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key eksik' });
   try {
@@ -340,8 +340,13 @@ Dikkat Çekici tweet: Merak uyandıran, soru soran, çarpıcı ve iddialı ifade
 Kurallar: Maks 240 karakter. Türkçe. 1-2 hashtag. 1-2 emoji. SADECE tweet metnini yaz.`;
     }
     const userContent = `Haber: ${title}\nDetay: ${description || ''}`;
-    const result = await callClaude(system, userContent, 300);
-    res.json({ tweet: result.trim() });
+    let result = await callClaude(system, userContent, 300);
+    result = result.trim();
+    // Link varsa tweet sonuna ekle
+    if (link && !result.includes(link)) {
+      result = result + '\n\n' + link;
+    }
+    res.json({ tweet: result });
   } catch (err) {
     console.error('Tweet error:', err.message);
     res.status(500).json({ error: 'Tweet yazilamadi' });
