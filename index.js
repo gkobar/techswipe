@@ -442,7 +442,8 @@ app.post('/api/todo/save', async (req, res) => {
   if (!FIREBASE_KEY) return res.status(500).json({ error: 'Firebase key eksik' });
   try {
     const id = String(space).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 80) || 'main';
-    await fbSet('todo_state', id, { data, updatedAt: Date.now() });
+    const result = await fbSet('todo_state', id, { data, updatedAt: Date.now() });
+    if (result && result.error) return res.status(500).json({ error: result.error.message || 'firestore hatasi', detail: result.error });
     res.json({ ok: true });
   } catch (err) {
     console.error('Todo save error:', err.message);
@@ -462,6 +463,18 @@ app.get('/api/todo/load', async (req, res) => {
   } catch (err) {
     console.error('Todo load error:', err.message);
     res.json({ data: '' });
+  }
+});
+
+// ── TO DO LIST: SELF-TEST (tarayicidan acilabilir tani araci) ──
+app.get('/api/todo/selftest', async (req, res) => {
+  if (!FIREBASE_KEY) return res.json({ firebase: 'YOK' });
+  try {
+    const w = await fbSet('todo_state', 'selftest', { data: 'test ' + Date.now(), updatedAt: Date.now() });
+    const r = await fbGet('todo_state/selftest');
+    res.json({ yazma: w, okuma: r });
+  } catch (e) {
+    res.json({ error: e.message });
   }
 });
 
