@@ -435,6 +435,36 @@ app.get('/api/bookmark', async (req, res) => {
   }
 });
 
+// ── TO DO LIST: KAYDET / YUKLE (cihazlar arasi senkron) ──
+app.post('/api/todo/save', async (req, res) => {
+  const { space, data } = req.body;
+  if (!space || typeof data !== 'string') return res.status(400).json({ error: 'space ve data gerekli' });
+  if (!FIREBASE_KEY) return res.status(500).json({ error: 'Firebase key eksik' });
+  try {
+    const id = String(space).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 80) || 'main';
+    await fbSet('todo_state', id, { data, updatedAt: Date.now() });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Todo save error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/todo/load', async (req, res) => {
+  const { space } = req.query;
+  if (!space) return res.status(400).json({ error: 'space gerekli' });
+  if (!FIREBASE_KEY) return res.status(500).json({ error: 'Firebase key eksik' });
+  try {
+    const id = String(space).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 80) || 'main';
+    const doc = await fbGet(`todo_state/${id}`);
+    const data = doc && doc.fields && doc.fields.data ? (doc.fields.data.stringValue || '') : '';
+    res.json({ data });
+  } catch (err) {
+    console.error('Todo load error:', err.message);
+    res.json({ data: '' });
+  }
+});
+
 // ── HEALTH ──
 app.get('/health', (req, res) => res.json({ status: 'ok', key: ANTHROPIC_API_KEY ? 'var' : 'YOK', firebase: FIREBASE_KEY ? 'var' : 'YOK' }));
 
