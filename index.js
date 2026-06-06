@@ -267,6 +267,20 @@ app.post('/api/digest', async (req, res) => {
   }
 });
 
+// ── NOT ÇEVİRİCİ: SERBEST SORU (clarify + ogrenme) ──
+app.post('/api/ask', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt gerekli' });
+  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key eksik' });
+  try {
+    const text = await callClaude('Sadece istenen JSON ile yanit ver, markdown kullanma.', prompt, 600);
+    res.json({ text });
+  } catch (err) {
+    console.error('Ask error:', err.message);
+    res.status(500).json({ error: 'ask basarisiz', detail: err.message });
+  }
+});
+
 // ── PLANLAYICI: KELİME ÜRETİCİ ──
 app.post('/api/planner/words', async (req, res) => {
   const { topic, grade } = req.body;
@@ -280,7 +294,7 @@ Kelimeler o sınıf seviyesine uygun, günlük hayatta kullanılabilir olsun. Ma
     const userContent = `Konu: ${topic}
 Sınıf: ${grade || 5}. sınıf`;
     let result = await callClaude(system, userContent, 400);
-    result = result.replace(/\`\`\`json\s*/gi, '').replace(/\`\`\`\s*/g, '').trim();
+    result = result.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     const match = result.match(/\[[\s\S]*\]/);
     if (!match) throw new Error('JSON parse hatası');
     const words = JSON.parse(match[0]);
@@ -426,4 +440,3 @@ app.get('/health', (req, res) => res.json({ status: 'ok', key: ANTHROPIC_API_KEY
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Kobar backend port ${PORT}'de calisiyor`));
-
